@@ -3,7 +3,6 @@ package org.usfirst.frc.team5586.robot;
 
 import org.opencv.core.Rect;
 import org.opencv.imgproc.Imgproc;
-
 import edu.wpi.cscore.UsbCamera;
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.CameraServer;
@@ -25,13 +24,12 @@ public class Robot extends IterativeRobot {
 	final String customAuto2 = "Vision Driving";
 	final String customAuto3 = "Move";
 	String autoSelected;
-	SendableChooser<String> chooser = new SendableChooser<>();
+	SendableChooser<String> chooser = new SendableChooser<String>();
     Victor mFrontLeft = new Victor(0);
     Victor mBackLeft = new Victor(1);
     Victor mFrontRight = new Victor(2);
     Victor mBackRight = new Victor(3);
     RobotDrive drive = new RobotDrive(mFrontLeft, mBackLeft, mFrontRight, mBackRight);
-    VictorSP shooter = new VictorSP(4);
     Spark intake = new Spark(7);
     Spark winch = new Spark(6);
     Joystick joystick = new Joystick(0);
@@ -41,8 +39,13 @@ public class Robot extends IterativeRobot {
 	Pipeline pipeline;
 	VisionThread visionThread;
 	private double centerX = 0.0;
+	private double centerY = 0.0;
 	private final Object imgLock = new Object();
 	boolean rotation;
+	double timer = 0;
+	double moveX = 0;
+	double moveY = 0;
+	double moveZ = 0;
     
     public void robotInit() {
         gyro.calibrate(); 
@@ -57,6 +60,7 @@ public class Robot extends IterativeRobot {
                 Rect r = Imgproc.boundingRect(pipeline.filterContoursOutput().get(0));
                 synchronized (imgLock) {
                     centerX = r.x + (r.width / 2);
+                    centerY = r.y + (r.height / 2);
                 }
             }
         });
@@ -72,36 +76,76 @@ public class Robot extends IterativeRobot {
     	autoSelected = chooser.getSelected();
 		System.out.println("Auto selected: " + autoSelected);
 		System.out.println("Test");
+		timer = 0;
+
     }
     
-    public void autonomousPeriodic() {
-    	double centerX;
-    		switch (autoSelected) {
-    		case customAuto3: 
-    			drive.mecanumDrive_Cartesian(1, 0, 0, gyro.getAngle());
-    			Timer.delay(5);
-    			drive.mecanumDrive_Cartesian(0, 0, 0, 0);
-    			break;
-    		case customAuto2:
-        		synchronized (imgLock) {
-        			centerX = this.centerX;
-        		}
-        		double move = (centerX - (IMG_WIDTH / 2)) * 0.005;
-        		drive.mecanumDrive_Cartesian(0, move, 0, gyro.getAngle());
-    			break;
-    		case customAuto1:
-        		synchronized (imgLock) {
-        			centerX = this.centerX;
-        		}
-        		double turn = centerX - (IMG_WIDTH / 2);
-        		shooter.set(turn * 0.005);
-    			break;
-    		case defaultAuto:
-    		default:
-    			drive.mecanumDrive_Cartesian(0, 0, 0, 0);
-    			break;
-    		}
-    }
+	public void autonomousPeriodic() {
+		
+		timer += 0.002;
+		SmartDashboard.putNumber("Time in Auto", timer);
+		double centerX;
+		double centerY;
+		switch (autoSelected) {
+		case customAuto3:
+			
+			boolean foundX = false;
+			boolean foundY = false;
+			double t = 3;
+			
+			synchronized (imgLock) {
+				centerX = this.centerX;
+				centerY = this.centerY;
+			}
+			
+			double offX = (centerX - (IMG_WIDTH / 2));
+			double offY = (centerY - (IMG_HEIGHT /2));
+			
+			if(offX < t && offX > -t) {
+				foundX = true;
+			} else { 
+				foundX = false;
+				moveX = offX * 0.005;
+				moveX += timer * 0.05;
+			}
+			
+			if(offY < t && offY > -t) {
+				foundY = true;
+			} else { 
+				foundY = false;
+				moveY = offY * 0.005;
+				moveY += timer * 0.05;
+			}
+			
+			
+			SmartDashboard.putNumber("Off X", offX);
+			SmartDashboard.putNumber("Off Y", offY);
+			SmartDashboard.putBoolean("Found X", foundX);
+			SmartDashboard.putBoolean("Found Y", foundY);
+			
+			drive.mecanumDrive_Cartesian(moveX, -moveY, 0, gyro.getAngle());
+			
+			break;
+		case customAuto2:
+			synchronized (imgLock) {
+				centerX = this.centerX;
+			}
+			double move = (centerX - (IMG_WIDTH / 2)) * 0.005;
+			drive.mecanumDrive_Cartesian(move, 0, 0, gyro.getAngle());
+			break;
+		case customAuto1:
+			synchronized (imgLock) {
+				centerX = this.centerX;
+			}
+			double turn = centerX - (IMG_WIDTH / 2);
+			// shooter.set(turn * 0.005);
+			break;
+		case defaultAuto:
+		default:
+			drive.mecanumDrive_Cartesian(0, 0, 0, 0);
+			break;
+		}
+	}
 
     public void teleopPeriodic() {
         double xSpeed;
@@ -164,9 +208,9 @@ public class Robot extends IterativeRobot {
     	}
     	
     	if(joystick.getRawButton(2) == true) {
-    		shooter.set(1);
+    		//shooter.set(1);
     	} else {
-    		shooter.set(0);
+    		//shooter.set(0);
     	}
     	
     	if(joystick.getRawButton(3) == true) {

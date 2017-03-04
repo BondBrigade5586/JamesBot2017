@@ -1,21 +1,22 @@
 package org.usfirst.frc.team5586.robot;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.opencv.core.Core;
-import org.opencv.core.CvType;
-import org.opencv.core.Mat;
-import org.opencv.core.MatOfInt;
-import org.opencv.core.MatOfPoint;
-import org.opencv.core.MatOfPoint2f;
-import org.opencv.core.Point;
-import org.opencv.core.Rect;
-import org.opencv.core.Scalar;
-import org.opencv.core.Size;
-import org.opencv.imgproc.Imgproc;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.HashMap;
 
 import edu.wpi.first.wpilibj.vision.VisionPipeline;
+
+import org.opencv.core.*;
+import org.opencv.core.Core.*;
+import org.opencv.features2d.FeatureDetector;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.*;
+import org.opencv.objdetect.*;
 
 /**
 * Pipeline class.
@@ -40,27 +41,26 @@ public class Pipeline implements VisionPipeline {
 	/**
 	 * This is the primary method that runs the entire pipeline and updates the outputs.
 	 */
-	@Override
-	public void process(Mat source0) {
+	@Override	public void process(Mat source0) {
 		// Step Resize_Image0:
 		Mat resizeImageInput = source0;
 		double resizeImageWidth = 320.0;
-		double resizeImageHeight = 240.0;
+		double resizeImageHeight = 230.0;
 		int resizeImageInterpolation = Imgproc.INTER_CUBIC;
 		resizeImage(resizeImageInput, resizeImageWidth, resizeImageHeight, resizeImageInterpolation, resizeImageOutput);
 
 		// Step HSL_Threshold0:
 		Mat hslThresholdInput = resizeImageOutput;
-		double[] hslThresholdHue = {9.712230215827338, 49.453924914675774};
-		double[] hslThresholdSaturation = {110.07194244604315, 239.76962457337885};
-		double[] hslThresholdLuminance = {79.49583670901914, 199.72344984035706};
+		double[] hslThresholdHue = {0.0, 180.0};
+		double[] hslThresholdSaturation = {149.05575539568343, 255.0};
+		double[] hslThresholdLuminance = {0.0, 255.0};
 		hslThreshold(hslThresholdInput, hslThresholdHue, hslThresholdSaturation, hslThresholdLuminance, hslThresholdOutput);
 
 		// Step CV_erode0:
 		Mat cvErodeSrc = hslThresholdOutput;
 		Mat cvErodeKernel = new Mat();
 		Point cvErodeAnchor = new Point(-1, -1);
-		double cvErodeIterations = 1.0;
+		double cvErodeIterations = 1;
 		int cvErodeBordertype = Core.BORDER_CONSTANT;
 		Scalar cvErodeBordervalue = new Scalar(-1);
 		cvErode(cvErodeSrc, cvErodeKernel, cvErodeAnchor, cvErodeIterations, cvErodeBordertype, cvErodeBordervalue, cvErodeOutput);
@@ -72,17 +72,17 @@ public class Pipeline implements VisionPipeline {
 
 		// Step Filter_Contours0:
 		ArrayList<MatOfPoint> filterContoursContours = findContoursOutput;
-		double filterContoursMinArea = 150.0;
-		double filterContoursMinPerimeter = 100.0;
+		double filterContoursMinArea = 400.0;
+		double filterContoursMinPerimeter = 0.0;
 		double filterContoursMinWidth = 0.0;
-		double filterContoursMaxWidth = 1000.0;
-		double filterContoursMinHeight = 0.0;
-		double filterContoursMaxHeight = 1000.0;
+		double filterContoursMaxWidth = 1000;
+		double filterContoursMinHeight = 0;
+		double filterContoursMaxHeight = 1000;
 		double[] filterContoursSolidity = {0, 100};
-		double filterContoursMaxVertices = 1000000.0;
-		double filterContoursMinVertices = 0.0;
-		double filterContoursMinRatio = 0.0;
-		double filterContoursMaxRatio = 1000.0;
+		double filterContoursMaxVertices = 1000000;
+		double filterContoursMinVertices = 0;
+		double filterContoursMinRatio = 0;
+		double filterContoursMaxRatio = 1000;
 		filterContours(filterContoursContours, filterContoursMinArea, filterContoursMinPerimeter, filterContoursMinWidth, filterContoursMaxWidth, filterContoursMinHeight, filterContoursMaxHeight, filterContoursSolidity, filterContoursMaxVertices, filterContoursMinVertices, filterContoursMinRatio, filterContoursMaxRatio, filterContoursOutput);
 
 	}
